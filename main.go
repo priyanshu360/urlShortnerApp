@@ -17,6 +17,7 @@ type Url struct {
 	Id       string `json:"id" binding:"required"`
 	LongUrl  string `json:"long_url" binding:"required"`
 	ShortUrl string `json:"short_url" binding:"required"`
+	Hit      int    `json:"hit" binding:"required"`
 }
 
 var db *mongo.Collection
@@ -38,6 +39,7 @@ func main() {
 	router.HandleFunc("/", MainPageHandler)
 	router.HandleFunc("/create-short-url", LongUrlHandler).Methods("POST")
 	router.HandleFunc("/{shortUrl}", ShortUrlHandler).Methods("GET")
+	router.HandleFunc("/{shortUrl}/details", detailsHandler).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8081", router))
 }
 
@@ -52,21 +54,16 @@ func LongUrlHandler(w http.ResponseWriter, r *http.Request) {
 	cnt, _ := db.CountDocuments(ctx, bson.M{"longurl": r.FormValue("url")})
 
 	if cnt != 0 {
-		var url []Url
-		cursor, err := db.Find(ctx, bson.M{"longurl": r.FormValue("url")})
+		var url Url
+		err := db.FindOne(ctx, bson.M{"longurl": r.FormValue("url")}).Decode(url)
 		errorHandler(err)
 
-		err = cursor.All(ctx, &url)
-		errorHandler(err)
-
-		fmt.Println(r.FormValue("url"))
-		json.NewEncoder(w).Encode(url[0])
+		json.NewEncoder(w).Encode(url)
 		return
 	}
 
 	for {
 		uid = uuid.New().String()[:5]
-		fmt.Println(uid)
 		cnt, _ := db.CountDocuments(ctx, bson.M{"id": uid})
 		if cnt == 0 {
 			break
@@ -78,6 +75,7 @@ func LongUrlHandler(w http.ResponseWriter, r *http.Request) {
 		Id:       uid,
 		LongUrl:  r.FormValue("url"),
 		ShortUrl: host + uid,
+		Hit:      0,
 	}
 
 	res, err := db.InsertOne(ctx, url)
@@ -94,17 +92,49 @@ func ShortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	errorHandler(err)
 
 	if cnt == 0 {
+		fmt.Fprint(w, "<h1> ERROR URL INVALID </h1>")
 		return
 	}
 
-	var url []Url
-	cursor, err := db.Find(ctx, bson.M{"id": urlId})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var url Url
+	err = db.FindOne(ctx, bson.M{"id": urlId}).Decode(&url)
 	errorHandler(err)
 
-	err = cursor.All(ctx, &url)
+	result, err := db.UpdateOne(
+		ctx,
+		bson.M{"id": urlId},
+		bson.D{
+			{"$set", bson.D{{"hit", url.Hit + 1}}},
+		},
+	)
+
+	fmt.Printf("Updated %v Documents!\n", result.ModifiedCount)
+	err = db.FindOne(ctx, bson.M{"id": urlId}).Decode(&url)
 	errorHandler(err)
 
-	http.Redirect(w, r, url[0].LongUrl, 307)
+	http.Redirect(w, r, url.LongUrl, 307)
+}
+
+func detailsHandler(w http.ResponseWriter, r *http.Request) {
+	urlId := mux.Vars(r)["shortUrl"]
+
+	cnt, err := db.CountDocuments(ctx, bson.M{"id": urlId})
+	errorHandler(err)
+
+	if cnt == 0 {
+		fmt.Fprint(w, "<h1> ERROR URL INVALID </h1>")
+		return
+	}
+
+	var url Url
+	err = db.FindOne(ctx, bson.M{"id": urlId}).Decode(&url)
+	errorHandler(err)
+
+	json.NewEncoder(w).Encode(url)
 }
 
 func errorHandler(err error) {
