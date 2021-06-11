@@ -1,4 +1,4 @@
-# urlShortnerApp
+# API for custom short URLs
 A fast URL shortener and redirect tool written in Go and using mongoDB to store urls data.
 
 The objective of this application is to provide a RESTFull API URL Shortener in Go.
