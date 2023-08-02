@@ -4,141 +4,166 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Url struct {
-	Id       string `json:"id" binding:"required"`
-	LongUrl  string `json:"long_url" binding:"required"`
-	ShortUrl string `json:"short_url" binding:"required"`
-	Hit      int    `json:"hit" binding:"required"`
-}
+type apiFunc func(http.ResponseWriter, *http.Request) error
 
-var db *mongo.Collection
-var ctx = context.TODO()
-
-func init() {
-	clientOptions := options.Client().ApplyURI("mongodb://127.0.0.1:27017/")
-	client, err := mongo.Connect(ctx, clientOptions)
-	errorHandler(err)
-
-	err = client.Ping(ctx, nil)
-	errorHandler(err)
-
-	db = client.Database("urlShorterDB").Collection("urls")
-}
-
-func main() {
-	router := mux.NewRouter()
-	router.HandleFunc("/", MainPageHandler)
-	router.HandleFunc("/create-short-url", LongUrlHandler).Methods("POST")
-	router.HandleFunc("/{shortUrl}", ShortUrlHandler).Methods("GET")
-	router.HandleFunc("/{shortUrl}/details", detailsHandler).Methods("GET")
-	log.Fatal(http.ListenAndServe(":8081", router))
-}
-
-func MainPageHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "index.html")
-}
-
-func LongUrlHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-
-	var uid string
-	cnt, _ := db.CountDocuments(ctx, bson.M{"longurl": r.FormValue("url")})
-
-	if cnt != 0 {
-		var url Url
-		err := db.FindOne(ctx, bson.M{"longurl": r.FormValue("url")}).Decode(url)
-		errorHandler(err)
-
-		json.NewEncoder(w).Encode(url)
-		return
+func CreateShort(rw http.ResponseWriter, r *http.Request) error {
+	var reqBody CreateShortURLReq
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		return err
 	}
 
-	for {
-		uid = uuid.New().String()[:5]
-		cnt, _ := db.CountDocuments(ctx, bson.M{"id": uid})
-		if cnt == 0 {
-			break
+	// generate hash
+
+	urlRecord := URLRecord{
+		Hash : "some_value",
+		LongUrl : reqBody.LongUrl,
+	}
+
+	responseJSON, err := json.Marshal(urlRecord)
+	if err != nil {
+		return err
+	}
+
+	rw.WriteHeader(http.StatusOK)
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Write(responseJSON)
+
+	// log.Println(urlRecord)
+
+	return nil
+}
+
+func ServeShort(rw http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func Handler(f apiFunc) http.HandlerFunc {
+	log.Println(f)
+	return func(rw http.ResponseWriter, r *http.Request) {
+		if err := f(rw, r); err != nil {
+			log.Println(err.Error())
 		}
 	}
-
-	host := "127.0.0.1:8081/"
-	url := Url{
-		Id:       uid,
-		LongUrl:  r.FormValue("url"),
-		ShortUrl: host + uid,
-		Hit:      0,
-	}
-
-	res, err := db.InsertOne(ctx, url)
-	errorHandler(err)
-
-	fmt.Printf("inserted document with ID %v\n", res.InsertedID)
-	json.NewEncoder(w).Encode(url)
 }
 
-func ShortUrlHandler(w http.ResponseWriter, r *http.Request) {
-	urlId := mux.Vars(r)["shortUrl"]
 
-	cnt, err := db.CountDocuments(ctx, bson.M{"id": urlId})
-	errorHandler(err)
+type Server struct {
+	Address string
+	Router  *mux.Router
+	DB      *MongoDB
+}
 
-	if cnt == 0 {
-		fmt.Fprint(w, "<h1> ERROR URL INVALID </h1>")
-		return
+func NewServer() *Server {
+	router := mux.NewRouter()
+	router.HandleFunc("/create-short-url", Handler(CreateShort)).Methods("POST")
+	router.HandleFunc("/{shortUrl}", Handler(ServeShort)).Methods("GET")
+	return &Server{
+		Address: ":8080",
+		Router:  router,
+	}
+}
+
+func (s Server) Run() {
+	log.Println("Server Runnning : ", s)
+	log.Fatal(http.ListenAndServe(s.Address, s.Router))
+}
+
+func (s *Server) initDB() error {
+	log.Println("init DB ... ")
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	// credential := options.Credential{
+	// 	Username: "user",
+	// 	Password: "password",
+	// }
+	// clientOpts := options.Client().ApplyURI("mongodb://localhost:27017").SetAuth(credential)
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		return err
 	}
 
-	if err != nil {
+	if err := client.Ping(ctx, nil); err != nil {
+		return err
+	}
+
+	// if err := createDatabaseAndCollection(ctx, client, "url_shortner_db", "urlrecords"); err != nil {
+	// 	return err
+	// }
+
+	s.DB = &MongoDB{client: client}
+	return nil
+}
+
+
+type Storage interface {
+	GetLongUrl(string) (string, error)
+	GetHashValue(string) (string, error)
+	UpdateHashValue(*URLRecord) error
+	DeleteURLRecord(string) error
+}
+
+type MongoDB struct {
+	client *mongo.Client
+}
+
+
+
+
+func createDatabaseAndCollection(ctx context.Context, client *mongo.Client, dbName, collectionName string) error {
+	// Check if the desired collection already exists.
+	// collections, err := client.Database(dbName).Collection(collectionName)
+	// if err != nil {
+	// 	log.Println(err.Error())
+	// 	return err
+	// }
+
+	// If the collection doesn't exist, create it.
+	collectionExists := false
+	// for _, coll := range collections {
+	// 	if coll == collectionName {
+	// 		collectionExists = true
+	// 		break
+	// 	}
+	// }
+
+	// If the collection doesn't exist, create it.
+	if !collectionExists {
+		err := client.Database(dbName).CreateCollection(ctx, collectionName)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Collection \"%s\" created successfully in database \"%s\".\n", collectionName, dbName)
+	}
+
+	return nil
+}
+
+type URLRecord struct {
+	Hash    string	`json:"hash"`
+	LongUrl string	`json:"long_url"`
+}
+
+type CreateShortURLReq struct {
+	LongUrl string `json:"long_url"`
+}
+
+
+func main() {
+	apiServer := NewServer()
+
+	if err := apiServer.initDB(); err != nil {
 		log.Fatal(err)
 	}
-
-	var url Url
-	err = db.FindOne(ctx, bson.M{"id": urlId}).Decode(&url)
-	errorHandler(err)
-
-	result, err := db.UpdateOne(
-		ctx,
-		bson.M{"id": urlId},
-		bson.D{
-			{"$set", bson.D{{"hit", url.Hit + 1}}},
-		},
-	)
-
-	fmt.Printf("Updated %v Documents!\n", result.ModifiedCount)
-	err = db.FindOne(ctx, bson.M{"id": urlId}).Decode(&url)
-	errorHandler(err)
-
-	http.Redirect(w, r, url.LongUrl, 307)
-}
-
-func detailsHandler(w http.ResponseWriter, r *http.Request) {
-	urlId := mux.Vars(r)["shortUrl"]
-
-	cnt, err := db.CountDocuments(ctx, bson.M{"id": urlId})
-	errorHandler(err)
-
-	if cnt == 0 {
-		fmt.Fprint(w, "<h1> ERROR URL INVALID </h1>")
-		return
-	}
-
-	var url Url
-	err = db.FindOne(ctx, bson.M{"id": urlId}).Decode(&url)
-	errorHandler(err)
-
-	json.NewEncoder(w).Encode(url)
-}
-
-func errorHandler(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
+	
+	apiServer.Run()
 }
