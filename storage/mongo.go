@@ -14,7 +14,7 @@ import (
 )
 
 type MongoDB struct {
-	Client *mongo.Client 
+	Client *mongo.Client
 }
 
 func InitMongo() (*MongoDB, error) {
@@ -23,8 +23,8 @@ func InitMongo() (*MongoDB, error) {
 	defer cancel()
 
 	credential := options.Credential{
-		Username: config.DB_USER,
-		Password: config.DB_PASSWORD,
+		Username:   config.DB_USER,
+		Password:   config.DB_PASSWORD,
 		AuthSource: config.DB_NAME,
 	}
 	clientOpts := options.Client().ApplyURI(config.DATABASE_URL).SetAuth(credential)
@@ -39,7 +39,6 @@ func InitMongo() (*MongoDB, error) {
 		return nil, err
 	}
 
-
 	return &MongoDB{Client: client}, nil
 }
 
@@ -53,7 +52,7 @@ func (m MongoDB) GetLongUrl(hash string) (string, error) {
 	var result models.URLRecord
 	if err := collection.FindOne(ctx, filter).Decode(&result); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return "", fmt.Errorf("URL not found for hash: %s", hash)
+			return "", nil
 		}
 		return "", err
 	}
@@ -100,7 +99,7 @@ func (m MongoDB) DeleteURLRecord(hash string) error {
 	return nil
 }
 
-func (m MongoDB) CreateURLRecord(record models.URLRecord) error {
+func (m MongoDB) CreateURLRecord(record *models.URLRecord) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -111,8 +110,3 @@ func (m MongoDB) CreateURLRecord(record models.URLRecord) error {
 
 	return nil
 }
-
-
-
-
-
