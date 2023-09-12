@@ -1,23 +1,20 @@
-# Go parameters
-GOCMD=go
-GOBUILD=$(GOCMD) build
-GOCLEAN=$(GOCMD) clean
+.PHONY: all build run stop clean
 
-# Binary name for your application
-BINARY_NAME=./bin/urlShortner
+# Default target
+all: build run
 
-all: build
-
+# Build the containers
 build:
-	$(GOBUILD) -o $(BINARY_NAME) -v
+	docker-compose build
 
-clean:
-	$(GOCLEAN)
-	rm -f $(BINARY_NAME)
-
+# Run the containers in the background
 run:
-	$(GOBUILD) -o $(BINARY_NAME) -v
-	./$(BINARY_NAME)
+	docker-compose up -d
 
+# Stop and remove the containers
+stop:
+	docker-compose down
 
-.PHONY: all build test clean run deps
+# Clean up all stopped containers and volumes
+clean:
+	docker-compose down -v
