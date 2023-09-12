@@ -1,0 +1,23 @@
+version: '3'
+services:
+  # Go Application Service
+  go-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.Server
+    ports:
+      - "8081:8081" 
+    depends_on:
+      - mongo
+
+  # MongoDB Service
+  mongo:
+    build:
+      context: .
+      dockerfile: Dockerfile.Mongo
+    ports:
+      - "27017:27017"  
+    volumes:
+      - mongo-data:/data/db  
+volumes:
+  mongo-data:

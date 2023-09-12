@@ -1,0 +1,11 @@
+# Use the official MongoDB image
+FROM mongo:latest
+
+# Set environment variables for admin user
+ENV MONGO_INITDB_ROOT_USERNAME=admin
+ENV MONGO_INITDB_ROOT_PASSWORD=admin
+ENV MONGO_INITDB_DATABASE=test
+
+
+# Expose the default MongoDB port
+EXPOSE 27017
