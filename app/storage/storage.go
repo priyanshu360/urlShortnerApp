@@ -6,5 +6,5 @@ type Storage interface {
 	GetLongUrl(string) (string, error)
 	GetHashValue(string) (string, error)
 	DeleteURLRecord(string) error
-	CreateURLRecord(models.URLRecord) error
+	CreateURLRecord(*models.URLRecord) error
 }
