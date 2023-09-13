@@ -11,7 +11,7 @@ func getEnvWithFallback(key, fallback string) string {
 }
 
 var (
-	DATABASE_URL = getEnvWithFallback("DATABASE_URL", "mongodb://mongo:27017/test")
+	DATABASE_URL = getEnvWithFallback("DATABASE_URL", "mongodb://localhost:27017/test")
 	PORT = getEnvWithFallback("PORT", "8081")
 	DB_USER = getEnvWithFallback("DB_USER", "admin")
 	DB_PASSWORD = getEnvWithFallback("DB_PASSWORD", "password")

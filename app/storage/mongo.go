@@ -52,7 +52,7 @@ func (m MongoDB) GetLongUrl(hash string) (string, error) {
 	var result models.URLRecord
 	if err := collection.FindOne(ctx, filter).Decode(&result); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return "", nil
+			return "",  fmt.Errorf("URL record not found for hash: %s", hash)
 		}
 		return "", err
 	}

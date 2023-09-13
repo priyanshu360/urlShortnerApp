@@ -11,12 +11,12 @@
 *.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+/app/*.out
 
 # Dependency directories (remove the ones you don't need)
 /vendor/
-/go.sum
-/go.mod
+/app/go.sum
+/app/go.mod
 
 # Environment configuration files
 .env
