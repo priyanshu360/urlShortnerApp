@@ -1,0 +1,9 @@
+module github.com/priyanshu360/urlShortnerApp.git
+
+go 1.16
+
+require (
+	github.com/go-playground/validator/v10 v10.15.4
+	github.com/gorilla/mux v1.8.0
+	go.mongodb.org/mongo-driver v1.5.3
+)
