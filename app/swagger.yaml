@@ -1,0 +1,124 @@
+basePath: /
+consumes:
+    - application/json
+definitions:
+    CreateShortURLReq:
+        properties:
+            long_url:
+                description: LongURL is the original URL.
+                example: http://www.youtube.com
+                type: string
+                x-go-name: LongURL
+        required:
+            - long_url
+        title: CreateShortURLReq represents the request body parameter for creating a short URL.
+        type: object
+        x-go-package: github.com/priyanshu360/urlShortnerApp.git/models
+    URLRecord:
+        properties:
+            hash:
+                description: Hash for the short URL.
+                example: abc123
+                type: string
+                x-go-name: Hash
+            long_url:
+                description: LongURL is the original URL.
+                example: http://www.youtube.com
+                type: string
+                x-go-name: LongURL
+        required:
+            - hash
+            - long_url
+        title: URLRecord represents a URL record in the system.
+        type: object
+        x-go-package: github.com/priyanshu360/urlShortnerApp.git/models
+info:
+    contact:
+        email: priyanshurajput360@gmail.com
+        name: Priyanshu Rajput
+    description: |-
+        Swagger spec.
+
+        Schemes: [http]
+    title: Golang URL Shortner API
+    version: 0.0.1
+paths:
+    /{shortUrl}:
+        get:
+            description: Retrieves the long URL associated with a short URL.
+            operationId: getLongUrl
+            parameters:
+                - description: Short URL to retrieve the long URL for.
+                  in: path
+                  name: shortUrl
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: Success response
+                    schema:
+                        $ref: '#/responses/APIResult'
+                "400":
+                    description: Client Side Error
+                    schema:
+                        $ref: '#/responses/APIResult'
+                "404":
+                    description: Not Found
+                    schema:
+                        $ref: '#/responses/APIResult'
+                "503":
+                    description: Server Side Error
+                    schema:
+                        $ref: '#/responses/APIResult'
+            summary: Get Long URL
+    /create-short-url:
+        post:
+            operationId: createShortURL
+            parameters:
+                - description: Original URL
+                  in: body
+                  name: requestBody
+                  required: true
+                  schema:
+                    $ref: '#/definitions/CreateShortURLReq'
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: APIResult
+                    schema:
+                        $ref: '#/responses/APIResult'
+                "400":
+                    description: APIResult
+                    schema:
+                        $ref: '#/responses/APIResult'
+                "503":
+                    description: APIResult
+                    schema:
+                        $ref: '#/responses/APIResult'
+produces:
+    - application/json
+responses:
+    APIResult:
+        description: APIResult represents the API response.
+        headers:
+            status:
+                description: |-
+                    Status is the HTTP status code of the response.
+                    required: true
+                example: 404
+                format: int64
+                type: integer
+        schema:
+            properties:
+                data:
+                    description: Data is the response data, which can be either a string or an URLRecord.
+                    example: '"Not Found"'
+                    type: string
+                    x-go-name: Data
+            required:
+                - data
+            type: object
+swagger: "2.0"

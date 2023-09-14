@@ -24,12 +24,11 @@ type apiFunc func(http.ResponseWriter, *http.Request) models.APIResult
 func Handle(f apiFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		result := f(rw, r)
-		resultJSON, err := json.Marshal(result)
+		resultJSON, err := json.Marshal(result.Body)
 		if err != nil {
 			http.Error(rw, "Failed to marshal JSON response", http.StatusInternalServerError)
 			return
 		}
-
 		rw.WriteHeader(result.Status)
 		rw.Header().Set("Content-Type", "application/json")
 		rw.Write(resultJSON)

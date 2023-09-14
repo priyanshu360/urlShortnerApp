@@ -12,6 +12,33 @@ import (
 )
 
 func (ctrl *Controller) CreateShort(rw http.ResponseWriter, r *http.Request) models.APIResult {
+	// swagger:operation POST /create-short-url createShortURL
+	// ---
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: requestBody
+	//   in: body
+	//   description: Original URL
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/CreateShortURLReq"
+	// responses:
+	//   503:
+	//     description: APIResult
+	//     schema:
+	//       "$ref": "#/responses/APIResult"
+	//   400:
+	//     description: APIResult
+	//     schema:
+	//       "$ref": "#/responses/APIResult"
+	//   200:
+	//     description: APIResult
+	//     schema:
+	//       "$ref": "#/responses/APIResult"
+
+
+
 	var reqBody models.CreateShortURLReq
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		return response(http.StatusBadRequest, err.Error())

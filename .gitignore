@@ -15,8 +15,8 @@
 
 # Dependency directories (remove the ones you don't need)
 /vendor/
-/app/go.sum
-/app/go.mod
+go.sum
+go.mod
 
 # Environment configuration files
 .env
