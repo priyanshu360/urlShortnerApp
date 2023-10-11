@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"encoding/json"
+
 	"github.com/priyanshu360/urlShortnerApp.git/models"
 	"github.com/priyanshu360/urlShortnerApp.git/storage"
 )
@@ -15,9 +17,12 @@ func NewController(db storage.Storage) *Controller {
 	}
 }
 
-func response(status int, message interface{}) models.APIResult {
+func response(status int, val interface{}) models.APIResult {
+	data, _ := json.Marshal(val)
 	return models.APIResult{
 		Status: status,
-		Message: message,
+		Body : struct{Data string "json:\"data\""}{
+			Data: string(data),
+		},
 	}
 }

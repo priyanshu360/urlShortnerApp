@@ -2,6 +2,8 @@ version: '3'
 services:
   # Go Application Service
   go-app:
+    environment:
+      - DATABASE_URL=mongodb://mongo:27017/test
     build:
       context: .
       dockerfile: Dockerfile
@@ -19,6 +21,3 @@ services:
     ports:
       - "27017:27017"
     restart: always
-    volumes:
-      - "$PWD/mongo-entrypoint/:/docker-entrypoint-initdb.d/"
-    # command: mongod 
