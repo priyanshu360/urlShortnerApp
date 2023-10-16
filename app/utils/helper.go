@@ -23,6 +23,8 @@ type apiFunc func(http.ResponseWriter, *http.Request) models.APIResult
 
 func Handle(f apiFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
+		rw.Header().Set("Content-Type", "application/json")
+		rw.Header().Set("Access-Control-Allow-Origin", "*")
 		result := f(rw, r)
 		resultJSON, err := json.Marshal(result.Body)
 		if err != nil {
@@ -30,7 +32,6 @@ func Handle(f apiFunc) http.HandlerFunc {
 			return
 		}
 		rw.WriteHeader(result.Status)
-		rw.Header().Set("Content-Type", "application/json")
 		rw.Write(resultJSON)
 	}
 }
